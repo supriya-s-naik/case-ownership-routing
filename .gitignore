@@ -1,0 +1,18 @@
+# Local secrets
+.env
+
+# Python and uv
+.venv/
+.uv-cache/
+.uv-python/
+.artifact-work/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated benchmark results
+results/*
+!results/.gitkeep
+
+# Local demo exports
+JevExperiment_Final.mp4

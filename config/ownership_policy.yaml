@@ -1,0 +1,31 @@
+version: 1
+decision_rule: >-
+  Classify the case according to the team responsible for the next concrete
+  action, using the latest credible information in the case history.
+
+labels:
+  MINE:
+    description: Platform Functionality L3 owns the next concrete action.
+    includes:
+      - Login, authentication, SSO, MFA, session, or account access failures.
+      - Entitlement, permission, license, or feature-access failures.
+      - Functional failures, errors, exceptions, stuck workflows, and broken UI or API behavior.
+      - Debugging that may lead to a workaround or an Engineering bug report.
+  NOT_MINE:
+    description: Data and Methodology L3 owns the next concrete action.
+    includes:
+      - Incorrect or unexpected dashboard or report numbers.
+      - Differences between pages, reports, exports, or external systems.
+      - Calculation, metric-definition, and methodology questions.
+      - Data reconciliation or requests to explain why a value was produced.
+  UNSURE:
+    description: The evidence does not establish which team should act next.
+    includes:
+      - Vague reports without actionable evidence.
+      - Contradictory comments without a credible latest diagnosis.
+      - Multiple issues without a determinable immediate owner.
+      - Missing information needed to distinguish functional failure from a data issue.
+
+precedence:
+  - A confirmed software exception overrides an earlier report of incorrect values.
+  - A later confirmation that software works as designed and the difference is methodological overrides an earlier suspected defect.

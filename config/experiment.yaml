@@ -1,0 +1,13 @@
+version: 1
+models:
+  jev: typesafe/jev-1.13
+  haiku: anthropic/claude-haiku-4.5
+  sonnet: anthropic/claude-sonnet-4.6
+request:
+  timeout_seconds: 30
+  max_retries: 2
+  retry_backoff_seconds: 0.25
+  low_confidence_threshold: 0.5
+  repetitions: 3
+budget:
+  maximum_usd: 20.0

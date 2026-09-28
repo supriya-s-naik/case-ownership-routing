@@ -1,0 +1,62 @@
+version: 1
+reason_codes:
+  AUTH_LOGIN_FAILURE:
+    label: MINE
+    description: Login, SSO, or authentication flow fails functionally.
+  AUTH_MFA_FAILURE:
+    label: MINE
+    description: MFA enrollment, challenge, or reset fails functionally.
+  ENTITLEMENT_MISSING:
+    label: MINE
+    description: A required license or product entitlement is absent or not applied.
+  PERMISSION_FAILURE:
+    label: MINE
+    description: A documented permission or role does not grant the expected access.
+  FUNCTIONAL_EXCEPTION:
+    label: MINE
+    description: The product produces an exception or error instead of functioning.
+  WORKFLOW_FAILURE:
+    label: MINE
+    description: A product workflow is stuck or cannot complete.
+  API_FAILURE:
+    label: MINE
+    description: An API operation fails at the functional or transport layer.
+  CONFIRMED_SOFTWARE_DEFECT:
+    label: MINE
+    description: Later credible evidence confirms a software defect requiring investigation.
+  INCORRECT_VALUE:
+    label: NOT_MINE
+    description: A functioning page or report displays a value alleged to be incorrect.
+  REPORT_RECONCILIATION:
+    label: NOT_MINE
+    description: Values differ between reports, pages, or exports and need reconciliation.
+  SYSTEM_RECONCILIATION:
+    label: NOT_MINE
+    description: Product values differ from an external or upstream system.
+  METRIC_DEFINITION:
+    label: NOT_MINE
+    description: The user asks how a metric or score is defined or calculated.
+  METHODOLOGY_EXPLANATION:
+    label: NOT_MINE
+    description: The next action is explaining documented methodological behavior.
+  DATA_REFRESH_DIFFERENCE:
+    label: NOT_MINE
+    description: Values differ because sources use different data refresh schedules.
+  CONFIRMED_DESIGNED_BEHAVIOR:
+    label: NOT_MINE
+    description: Later credible evidence confirms the software works as designed.
+  INSUFFICIENT_INFORMATION:
+    label: UNSURE
+    description: The report lacks evidence needed to identify the next owner.
+  CONTRADICTORY_EVIDENCE:
+    label: UNSURE
+    description: Credible evidence conflicts and no diagnosis clearly supersedes another.
+  MULTIPLE_ISSUES:
+    label: UNSURE
+    description: Multiple open issues have different owners and no immediate priority is established.
+  MISSING_ARTIFACT:
+    label: UNSURE
+    description: A referenced screenshot, log, or attachment is required to classify the issue.
+  AWAITING_CLARIFICATION:
+    label: UNSURE
+    description: A requested clarification is needed to distinguish functional from data behavior.

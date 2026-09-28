@@ -1,0 +1,149 @@
+﻿id,gold_label,reason_code,scenario_family,difficulty,review_status,review_notes,pair_id,tags,split,case_text
+SEED-0001,MINE,AUTH_LOGIN_FAILURE,authentication,medium,approved,,,sso; reproduced,development,"Subject: SSO keeps returning to the sign-in page
+
+Customer: Since this morning, selecting Sign in with Meridian sends me back to the same login screen. Two coworkers in our fictional Aster Vale tenant see it too.
+
+L1: Password login is disabled for this tenant. Identity provider logs show a successful assertion.
+
+L2 internal note: Reproduced the redirect loop with a test account. The callback creates no application session and logs AUTH-CALLBACK-17. Platform L3 should inspect session creation."
+SEED-0002,MINE,AUTH_MFA_FAILURE,authentication,easy,approved,,,mfa; exception,development,"Subject: New phone MFA reset does not complete
+
+Customer: Support reset my authenticator after I changed phones, but the new QR code ends with 'challenge expired' immediately.
+
+L1: Account is active and the reset was issued twice.
+
+L2: Server trace shows MFA_CHALLENGE_STATE_INVALID on each fresh enrollment attempt. Please investigate the MFA workflow."
+SEED-0003,MINE,ENTITLEMENT_MISSING,entitlement,easy,approved,,PAIR-RISK-SURFACE,controlled-pair; risk,development,"Subject: Risk tab is missing for licensed analyst
+
+Customer: I cannot see the Risk tab in Northstar, although the onboarding guide says analysts should have it.
+
+Admin: The Analyst role is assigned.
+
+L2 internal note: Tenant inspection shows the Risk module entitlement never attached after the license upgrade. Platform L3 must repair or debug entitlement provisioning."
+SEED-0004,MINE,PERMISSION_FAILURE,permissions,medium,approved,,,role; reproduced,development,"Subject: Export permission denied despite documented role
+
+Customer: Users with the Report Publisher role receive 'Permission denied' when selecting Export.
+
+L1: Confirmed the affected users still have the role.
+
+L2: Reproduced in a clean fictional tenant. The permission evaluator returns false even though EXPORT_REPORTS is present. Platform L3 should debug access enforcement."
+SEED-0005,MINE,FUNCTIONAL_EXCEPTION,dashboard,easy,approved,,PAIR-DASHBOARD-OUTPUT,minimal-pair; error-versus-value,development,"Subject: Quarterly revenue widget shows an error instead of a number
+
+Customer: The quarterly revenue widget displays 'Unable to calculate — request 84Q' where the total should be.
+
+L2 internal note: The underlying aggregate request throws a NullReference exception for this workspace. No value is returned. Platform L3 should debug the failing widget."
+SEED-0006,MINE,WORKFLOW_FAILURE,workflow,easy,approved,,PAIR-SAVE-EVIDENCE,controlled-pair; timeout,development,"Subject: Save button spins forever
+
+Customer: Editing a portfolio works until I click Save; then the spinner never stops.
+
+L1: Asked the customer to retry in a private window. Same result.
+
+L2: Reproduced. The save request remains pending and the workflow emits STATE_TRANSITION_TIMEOUT. Platform L3 should investigate the stuck workflow."
+SEED-0007,MINE,API_FAILURE,api,easy,approved,,PAIR-API-OUTCOME,minimal-pair; http-error,development,"Subject: Portfolio totals endpoint fails
+
+Customer developer: GET /v2/portfolio/totals returns HTTP 502 for portfolio PF-204. It previously returned data.
+
+L2: Reproduced with the fictional sandbox record. The gateway reports an upstream application exception; no totals payload is returned. Platform L3 owns the next debugging action."
+SEED-0008,MINE,CONFIRMED_SOFTWARE_DEFECT,temporal_update,hard,approved,,PAIR-LATE-DIAGNOSIS,later-evidence; misleading-number-language; controlled-pair,development,"Subject: Exposure total suddenly looks wrong
+
+Customer: The exposure card dropped from 48 to 0 after yesterday's update. Is the calculation wrong?
+
+L1: Initially routed to Data for value review.
+
+L2 update, 15:40: Application logs now confirm the card's data loader throws INDEX_OUT_OF_RANGE and substitutes zero. Platform L3 must debug the confirmed defect before any methodology review."
+SEED-0009,NOT_MINE,INCORRECT_VALUE,dashboard,easy,approved,,PAIR-DASHBOARD-OUTPUT,minimal-pair; error-versus-value,development,"Subject: Quarterly revenue widget shows the wrong number
+
+Customer: The quarterly revenue widget loads normally and displays $4.2M, but our reconciliation workbook totals $4.0M. Which adjustments are included?
+
+L2 internal note: No application errors occurred and the aggregate completed successfully. Data and Methodology L3 should reconcile the value and explain its scope."
+SEED-0010,NOT_MINE,REPORT_RECONCILIATION,reconciliation,medium,approved,,PAIR-EXPORT-EVIDENCE,controlled-pair; page-versus-export,development,"Subject: Report and CSV totals differ
+
+Customer: The Northstar summary page shows 12,418 units, while today's CSV export contains 12,391. Both opened without errors.
+
+L2: Export generation completed successfully. The next action is to reconcile inclusion rules and cutoff timing between the two views."
+SEED-0011,NOT_MINE,SYSTEM_RECONCILIATION,reconciliation,medium,approved,,,external-system,development,"Subject: Northstar differs from Harbor Ledger
+
+Customer: Harbor Ledger shows 318 active contracts, but Northstar shows 314. Can you explain which records are omitted?
+
+L2: API calls and pages complete successfully. Four contracts have disputed effective dates. Data and Methodology L3 should reconcile the systems and determine the applicable date rule."
+SEED-0012,NOT_MINE,METRIC_DEFINITION,methodology,easy,approved,,PAIR-RISK-SURFACE,controlled-pair; risk,development,"Subject: How is the Risk score calculated?
+
+Customer: I can open the Risk tab and see a score of 72. What inputs and weights produce that number?
+
+L1: No missing features or error messages were reported.
+
+L2: Data and Methodology L3 should explain the metric definition."
+SEED-0013,NOT_MINE,METHODOLOGY_EXPLANATION,methodology,medium,approved,,,works-as-documented,development,"Subject: Pending orders included in utilization
+
+Customer: Utilization is higher than expected because the dashboard appears to include pending orders. Shouldn't it include completed orders only?
+
+L2 internal note: The calculation service completed normally. Documentation currently includes qualifying pending orders. Data and Methodology L3 should confirm and explain the intended rule."
+SEED-0014,NOT_MINE,SYSTEM_RECONCILIATION,api,easy,approved,,PAIR-API-OUTCOME,minimal-pair; successful-api,development,"Subject: Portfolio totals endpoint returns an unexpected total
+
+Customer developer: GET /v2/portfolio/totals returns HTTP 200 with total 781, but our warehouse query returns 793. Which records does the endpoint include?
+
+L2: Response schema and request processing are normal. Data and Methodology L3 should reconcile the returned value."
+SEED-0015,NOT_MINE,CONFIRMED_DESIGNED_BEHAVIOR,temporal_update,hard,approved,,PAIR-LATE-DIAGNOSIS,later-evidence; controlled-pair,development,"Subject: Annual trend appears shifted by one month
+
+Customer: The annual trend starts in February, so we suspected a chart defect.
+
+L1: Escalated as possible rendering issue.
+
+L2 update, 16:10: Confirmed the tenant uses a February-start fiscal calendar and the chart matches that configured methodology. Data and Methodology L3 should explain the fiscal-period interpretation."
+SEED-0016,NOT_MINE,DATA_REFRESH_DIFFERENCE,data_refresh,medium,approved,,,page-to-page,development,"Subject: Overview and detail pages update at different times
+
+Customer: At 08:15 the overview showed 540 accounts and the detail page showed 537. By noon they matched. Why?
+
+L2: Both pages loaded successfully. The overview refreshes hourly while detail refreshes every six hours according to configuration. Data and Methodology L3 should explain the timing difference."
+SEED-0017,UNSURE,AWAITING_CLARIFICATION,ambiguous,easy,approved,,PAIR-SAVE-EVIDENCE,controlled-pair; vague,development,"Subject: Saving is broken
+
+Customer: Saving is broken for my portfolio.
+
+L1: Asked whether Save is disabled, produces an error, spins indefinitely, or succeeds with unexpected values. No reply or logs yet. The next owner cannot be determined from the current report."
+SEED-0018,UNSURE,MISSING_ARTIFACT,ambiguous,easy,approved,,PAIR-EXPORT-EVIDENCE,controlled-pair; missing-attachment,development,"Subject: Export does not match
+
+Customer: The export does not match what I expected. See attached screenshot.
+
+L1: The attachment was not included in the forwarded case. It is unclear whether the export failed to open, omitted rows, or shows a different total. The artifact is required before ownership can be assigned."
+SEED-0019,UNSURE,CONTRADICTORY_EVIDENCE,contradictory,hard,approved,,,unordered-history; conflicting-diagnoses,development,"Subject: Position card investigation
+
+Customer: The position card is wrong.
+
+Internal note copied without timestamp: Browser console shows CARD_RENDER_EXCEPTION.
+
+Another internal note copied without timestamp: No exception reproduced; the difference comes from excluding provisional positions.
+
+Case migration removed the original note dates and authors. Neither diagnosis can be established as the latest credible one."
+SEED-0020,UNSURE,MULTIPLE_ISSUES,mixed,medium,approved,,,authentication; incorrect-value,development,"Subject: Cannot log in and yesterday's balance was wrong
+
+Customer: I am locked out today. Before that, yesterday's balance looked $8,000 too high. Please fix both.
+
+L1: Identity team requested an authentication trace; Data team requested the balance date and account list. The case does not identify which action must happen first and both issues remain open."
+SEED-0021,UNSURE,MISSING_ARTIFACT,ambiguous,medium,approved,,,missing-screenshot; misleading-keywords,development,"Subject: Red banner on totals page?
+
+Customer: The totals area is not right. I sent a picture showing the problem.
+
+L1: The picture is absent from the case history. The wording could describe an error banner, a wrong value, or a layout issue. Requested the image and exact text."
+SEED-0022,UNSURE,AWAITING_CLARIFICATION,insufficient_information,medium,approved,,,blank-versus-zero,development,"Subject: Empty allocation value
+
+Customer: Allocation is empty for one record.
+
+L1: Asked whether the field is blank because the page failed, or whether it displays a legitimate zero/no-data state. Also requested the record's fictional lifecycle status. No response yet."
+SEED-0023,UNSURE,CONTRADICTORY_EVIDENCE,contradictory,hard,approved,,,quoted-history; missing-timestamps,development,"Subject: Forwarded thread — regional total
+
+Forwarded excerpt: 'Engineering confirmed a calculation problem.'
+
+Earlier quoted excerpt placed below it: 'The application throws REGION_MAP_ERROR.'
+
+Internal note: The forwarding process stripped dates and attribution. We cannot tell which finding is newer or whether either was verified in this tenant. Obtain the original history before assigning the next action."
+SEED-0024,UNSURE,MULTIPLE_ISSUES,mixed,hard,approved,,,entitlement; methodology; intermittent,development,"Subject: Risk workspace has two intermittent problems
+
+Customer: Sometimes the Risk tab disappears; when it is visible, the score also seems too low.
+
+L1: Could not reproduce either report. Asked for an affected user, timestamps, expected calculation, and screenshot. No evidence yet establishes whether access debugging or methodology reconciliation is the immediate next action."
+SEED-0025,MINE,FUNCTIONAL_EXCEPTION,functional_error,medium,approved,,,access; error-message; multiple-users,development,"Subject: Re Error
+
+Hi I am getting network error when accessing your application. This has happened to another colleague in my team in past. The error says ""Something went wrong""."
+SEED-0026,NOT_MINE,REPORT_RECONCILIATION,reconciliation,easy,approved,,,ftp; dashboard; value-mismatch,development,"Subject: Mismatch between Files in FTP and Value in UI
+
+Hi, I was comparing the weighted avg field in FTP file for analysis date 09/15/2026 and same field In Dashboard, I see there is mismatch. Can you investigate why? And which one is correct?"
