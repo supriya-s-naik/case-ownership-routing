@@ -332,7 +332,7 @@ def _provider_statistics(
             if provider in result.predictions
         )
     accuracy = f"{quality.accuracy:.1%}" if quality.accuracy is not None else "Pending"
-    macro_f1 = f"{quality.macro_f1:.3f}" if quality.macro_f1 is not None else "Pending"
+    macro_f1 = f"{quality.macro_f1:.1%}" if quality.macro_f1 is not None else "Pending"
     latency = (
         f"{mean(prediction.latency_ms for prediction in predictions):.0f} ms"
         if predictions
@@ -594,7 +594,7 @@ def _render_classification_detail(job: DashboardJob) -> None:
         with column.container(border=True):
             st.markdown(f"#### {display_name}")
             st.caption(
-                f"Macro F1: {quality.macro_f1:.3f} · "
+                f"Macro F1: {quality.macro_f1:.1%} · "
                 f"{quality.sample_count} successful predictions"
                 if quality.macro_f1 is not None
                 else "No successful predictions"

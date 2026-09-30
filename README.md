@@ -98,6 +98,28 @@ case transcript. Previous runs and predictions are not sent to the models. Becau
 request does not pin a temperature or random seed, repeated live runs can still differ on
 borderline cases.
 
+### How quality metrics are calculated
+
+Quality metrics are calculated locally by comparing each successful model prediction
+with the human-approved gold label. Loading a saved run recalculates these metrics from
+the saved predictions and does not make another API call.
+
+- **Accuracy** is the number of correct predictions divided by all successful
+  predictions.
+- **Precision** asks: when the model predicts a label, how often is that prediction
+  correct?
+- **Recall** asks: of all cases with a given gold label, how many did the model find?
+- **F1** is the harmonic mean of precision and recall:
+  `2 * precision * recall / (precision + recall)`.
+- **Macro F1** calculates F1 separately for `MINE`, `NOT_MINE`, and `UNSURE`, then
+  averages the three scores so every label has equal weight.
+- The **confusion matrix** uses gold labels as rows and model predictions as columns.
+
+Accuracy, precision, recall, F1, and Macro F1 are displayed as percentages in the
+dashboard. The Markdown report uses values from 0 to 1 for F1 metrics. Provider failures
+are excluded from quality calculations and reported separately. With multiple
+repetitions, each case repetition is treated as a separate evaluation sample.
+
 ## Seed cases
 
 Approved seed cases live in `data/seeds/cases.csv`. You can add new draft cases for
