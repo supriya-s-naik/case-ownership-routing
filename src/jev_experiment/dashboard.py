@@ -916,23 +916,13 @@ def main() -> None:
         st.divider()
         _render_run_settings()
         st.subheader("Run preview")
+        run_actions = st.empty()
         summary = st.columns(2)
         summary[0].metric("Approved cases", len(plan.cases))
         summary[1].metric("Planned calls", plan.planned_calls)
         latest_saved = _latest_saved_benchmark()
-        if latest_saved is not None:
-            if st.button(
-                f"View latest saved run · {latest_saved.stem.removeprefix('benchmark-')}",
-                type="secondary",
-            ):
-                try:
-                    st.session_state.benchmark_job = _load_saved_job(plan, latest_saved)
-                except (OSError, ValueError, json.JSONDecodeError) as exc:
-                    st.error(str(exc))
-                else:
-                    st.rerun()
         with st.expander(
-            "Start a paid run · budget protection",
+            "Run authorization and budget",
             expanded=False,
         ):
             budget_summary = st.columns(2)
@@ -964,10 +954,16 @@ def main() -> None:
                 st.warning(
                     "The cost limit is below the guarded estimate. The run cannot start."
                 )
-            if st.button(
+            st.info(
+                "No API calls occur until billing is acknowledged and the run is started."
+            )
+        with run_actions.container():
+            action_columns = st.columns([1, 1, 2], vertical_alignment="center")
+            if action_columns[0].button(
                 "Start live benchmark",
                 type="primary",
                 disabled=not understands_billing or not within_budget,
+                width="stretch",
             ):
                 st.session_state.benchmark_job = _start_job(
                     plan,
@@ -975,9 +971,33 @@ def main() -> None:
                     execution_mode,
                 )
                 st.rerun()
-            st.info(
-                "No API calls occur until billing is acknowledged and the run is started."
-            )
+            if latest_saved is not None:
+                if action_columns[1].button(
+                    "View latest saved run",
+                    type="secondary",
+                    width="stretch",
+                    help=latest_saved.stem.removeprefix("benchmark-"),
+                ):
+                    try:
+                        st.session_state.benchmark_job = _load_saved_job(
+                            plan, latest_saved
+                        )
+                    except (OSError, ValueError, json.JSONDecodeError) as exc:
+                        st.error(str(exc))
+                    else:
+                        st.rerun()
+            if not understands_billing:
+                action_columns[2].caption(
+                    "Open **Run authorization and budget** below to acknowledge billing."
+                )
+            elif not within_budget:
+                action_columns[2].caption(
+                    "Increase the cost limit under **Run authorization and budget**."
+                )
+            else:
+                action_columns[2].caption(
+                    "Authorization complete. The live benchmark is ready to start."
+                )
         return
 
     _render_live_monitor()
