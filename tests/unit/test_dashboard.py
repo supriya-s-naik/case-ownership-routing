@@ -9,6 +9,7 @@ from jev_experiment.dashboard import (
     _downloadable_report,
     _load_saved_job,
     _provider_statistics,
+    _run_settings_from_job,
 )
 from jev_experiment.models import (
     CaseEvaluation,
@@ -85,6 +86,11 @@ def test_load_saved_job_restores_provider_progress_and_cost(tmp_path: Path) -> N
     assert job.actual_cost_usd == pytest.approx(0.003)
     assert job.execution is not None
     assert job.execution.stopped_reason is None
+    assert _run_settings_from_job(job) == {
+        "dashboard_dataset": "fixture.csv",
+        "dashboard_repetitions": 1,
+        "dashboard_execution_mode": "Throughput",
+    }
     refreshed_report = _downloadable_report(job)
     assert "# Case Ownership Routing Report" in refreshed_report
     assert "## Per-label quality" in refreshed_report

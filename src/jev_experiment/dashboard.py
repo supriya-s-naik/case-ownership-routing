@@ -733,13 +733,28 @@ def _render_case_detail(job: DashboardJob) -> None:
             _render_provider_result(result, provider)
 
 
+def _run_settings_from_job(job: DashboardJob) -> dict[str, object]:
+    return {
+        "dashboard_dataset": str(job.plan.dataset_path),
+        "dashboard_repetitions": job.plan.repetitions,
+        "dashboard_execution_mode": (
+            "Throughput"
+            if job.execution_mode == THROUGHPUT_MODE
+            else "Synchronized"
+        ),
+    }
+
+
 def _clear_job_and_rerun() -> None:
+    job: DashboardJob | None = st.session_state.get("benchmark_job")
+    if job is not None:
+        st.session_state.update(_run_settings_from_job(job))
     st.session_state.pop("benchmark_job", None)
     st.rerun()
 
 
 def _initialize_run_settings() -> None:
-    if "dashboard_dataset" not in st.session_state:
+    if not str(st.session_state.get("dashboard_dataset", "")).strip():
         st.session_state["dashboard_dataset"] = "data/seeds/cases.csv"
     if "dashboard_repetitions" not in st.session_state:
         st.session_state["dashboard_repetitions"] = 1
