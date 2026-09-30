@@ -274,7 +274,11 @@ summaries may be committed deliberately.
 
 ## 9. Evaluation Method
 
-### Primary quality metrics
+This section separates the metrics implemented in the current benchmark from the
+follow-on evaluation roadmap. Repository documentation must not imply that planned
+metrics are already available.
+
+### Primary quality metrics (implemented)
 
 - Macro F1 across `MINE`, `NOT_MINE`, and `UNSURE`.
 - Recall and precision for each label.
@@ -284,16 +288,26 @@ summaries may be committed deliberately.
 Macro F1 is the headline metric because all three categories matter even if a later
 production-like distribution is imbalanced.
 
+These metrics are calculated over successful responses. Provider failures are reported
+separately rather than converted into an ownership label.
+
 ### Operational metrics
+
+Currently implemented:
 
 - Per-request cost and total experiment cost.
 - Input and output token counts where available.
+- Mean provider latency.
+- Successful and failed call counts.
+- Retry count.
+
+Planned:
+
 - p50 and p95 provider latency.
 - API or schema failure rate.
-- Retry count.
 - Run-to-run label agreement across three repetitions.
 
-### Confidence metrics
+### Confidence metrics (planned)
 
 Where comparable probabilities are available:
 
@@ -306,14 +320,14 @@ Claude's self-reported probabilities and Jev's native probabilities must be
 identified as different mechanisms. Compare their empirical usefulness, not merely
 their numeric values.
 
-### Business-weighted view
+### Business-weighted view (planned)
 
 Before freezing the test set, define and document error costs. A provisional rule is
 that incorrectly returning `NOT_MINE` for an owned case is more costly than returning
 `UNSURE`, because it may delay an issue the team should handle. Report both ordinary
 metrics and the agreed business-weighted metric.
 
-### Robustness analysis
+### Robustness analysis (planned)
 
 Measure sensitivity to:
 

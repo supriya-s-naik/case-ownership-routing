@@ -20,7 +20,12 @@ from jev_experiment.benchmark import (
     prepare_benchmark_plan,
     run_live_benchmark_sync,
 )
-from jev_experiment.evaluation import reported_cost
+from jev_experiment.evaluation import (
+    LABELS,
+    classification_metrics,
+    render_smoke_report,
+    reported_cost,
+)
 from jev_experiment.models import CaseResult, Ownership, Prediction
 
 
@@ -166,6 +171,28 @@ def _load_saved_job(plan: BenchmarkPlan, path: Path) -> DashboardJob:
     return job
 
 
+def _downloadable_report(job: DashboardJob) -> str:
+    """Render current metrics while preserving saved execution metadata when present."""
+
+    if job.execution is None:
+        return ""
+    refreshed = render_smoke_report(list(job.execution.results)).replace(
+        "# Provider Smoke-Test Report",
+        "# Case Ownership Routing Report",
+        1,
+    )
+    report_path = job.execution.report_path
+    if not report_path.exists():
+        return refreshed
+    existing = report_path.read_text(encoding="utf-8")
+    marker = "\nCases:"
+    existing_body = existing.find(marker)
+    refreshed_body = refreshed.find(marker)
+    if existing_body == -1 or refreshed_body == -1:
+        return refreshed
+    return existing[:existing_body] + refreshed[refreshed_body:]
+
+
 def _drain_events(job: DashboardJob) -> None:
     while True:
         try:
@@ -237,7 +264,7 @@ def _apply_theme() -> None:
         .jev-model-title {font-size: 1.15rem; font-weight: 750; margin-bottom: .1rem;}
         .jev-model-id {color: #64748b; font-size: .76rem; min-height: 2.15rem; overflow-wrap: anywhere;}
         .jev-stat-grid {
-            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: .45rem; margin: .65rem 0 .8rem;
         }
         .jev-stat {
@@ -276,9 +303,9 @@ def _apply_theme() -> None:
 def _provider_statistics(
     job: DashboardJob | None,
     provider: str,
-) -> tuple[str, str, int, int]:
+) -> tuple[str, str, str, int, int]:
     if job is None:
-        return "Pending", "Pending", 0, 0
+        return "Pending", "Pending", "Pending", 0, 0
     provider_predictions = [
         (case_id, prediction)
         for (case_id, _repetition, prediction_provider), prediction in (
@@ -289,8 +316,8 @@ def _provider_statistics(
     if provider_predictions:
         gold_by_case = {case.id: case.gold_label for case in job.plan.cases}
         predictions = [prediction for _case_id, prediction in provider_predictions]
-        correct = sum(
-            prediction.label == gold_by_case[case_id]
+        quality = classification_metrics(
+            (gold_by_case[case_id], prediction.label)
             for case_id, prediction in provider_predictions
         )
     else:
@@ -299,15 +326,13 @@ def _provider_statistics(
             for result in job.results.values()
             if provider in result.predictions
         ]
-        correct = sum(
-            bool(
-                result.evaluation
-                and result.evaluation.correct_by_provider.get(provider, False)
-            )
+        quality = classification_metrics(
+            (result.expected_label, result.predictions[provider].label)
             for result in job.results.values()
             if provider in result.predictions
         )
-    accuracy = f"{correct / len(predictions):.1%}" if predictions else "Pending"
+    accuracy = f"{quality.accuracy:.1%}" if quality.accuracy is not None else "Pending"
+    macro_f1 = f"{quality.macro_f1:.3f}" if quality.macro_f1 is not None else "Pending"
     latency = (
         f"{mean(prediction.latency_ms for prediction in predictions):.0f} ms"
         if predictions
@@ -315,7 +340,7 @@ def _provider_statistics(
     )
     completed = job.provider_completed_calls.get(provider, len(predictions))
     failures = job.provider_failures.get(provider, 0)
-    return accuracy, latency, completed, failures
+    return accuracy, macro_f1, latency, completed, failures
 
 
 def _render_model_comparison(
@@ -331,7 +356,9 @@ def _render_model_comparison(
             provider,
             (provider.title(), "#0EA5E9"),
         )
-        accuracy, latency, completed, failures = _provider_statistics(job, provider)
+        accuracy, macro_f1, latency, completed, failures = _provider_statistics(
+            job, provider
+        )
         if job is None:
             cost = plan.estimated_cost_by_provider[provider] * total
             cost_label = "Estimated cost"
@@ -348,6 +375,7 @@ def _render_model_comparison(
             st.markdown(
                 '<div class="jev-stat-grid">'
                 f'<div class="jev-stat"><span>Accuracy</span><strong>{accuracy}</strong></div>'
+                f'<div class="jev-stat"><span>Macro F1</span><strong>{macro_f1}</strong></div>'
                 f'<div class="jev-stat"><span>Latency</span><strong>{latency}</strong></div>'
                 f'<div class="jev-stat"><span>{cost_label}</span><strong>${cost:.6f}</strong></div>'
                 "</div>",
@@ -467,15 +495,16 @@ def _render_comparison_charts(job: DashboardJob) -> None:
         if not predictions:
             continue
         gold_by_case = {case.id: case.gold_label for case in job.plan.cases}
-        correct = sum(
-            prediction.label == gold_by_case[case_id]
+        quality = classification_metrics(
+            (gold_by_case[case_id], prediction.label)
             for case_id, prediction in provider_predictions
         )
         display_name, color = PROVIDER_DISPLAY.get(
             provider,
             (provider.title(), "#0EA5E9"),
         )
-        accuracy = correct / len(predictions) * 100
+        accuracy = quality.accuracy * 100 if quality.accuracy is not None else 0.0
+        macro_f1 = quality.macro_f1 * 100 if quality.macro_f1 is not None else 0.0
         latency = mean(prediction.latency_ms for prediction in predictions)
         cost = job.provider_cost_usd.get(provider, 0.0)
         rows.append(
@@ -483,6 +512,7 @@ def _render_comparison_charts(job: DashboardJob) -> None:
                 "model": display_name,
                 "color": color,
                 "accuracy": accuracy,
+                "macro_f1": macro_f1,
                 "latency": latency,
                 "cost": cost,
             }
@@ -491,9 +521,10 @@ def _render_comparison_charts(job: DashboardJob) -> None:
         return
 
     st.subheader("Visual comparison")
-    chart_columns = st.columns(3, gap="large")
+    chart_columns = st.columns(4, gap="medium")
     chart_specs = (
         ("Accuracy", "Higher is better", "accuracy", "Accuracy (%)", ".1f"),
+        ("Macro F1", "Higher is better", "macro_f1", "Macro F1 (%)", ".1f"),
         ("Mean latency", "Lower is better", "latency", "Milliseconds", ".0f"),
         ("Total model cost", "Lower is better", "cost", "USD", ".6f"),
     )
@@ -510,7 +541,7 @@ def _render_comparison_charts(job: DashboardJob) -> None:
                     if field == "cost"
                     else (
                         f"{float(row[field]):{number_format}}%"
-                        if field == "accuracy"
+                        if field in {"accuracy", "macro_f1"}
                         else f"{float(row[field]):{number_format}} ms"
                     )
                 ),
@@ -526,6 +557,77 @@ def _render_comparison_charts(job: DashboardJob) -> None:
                     value_field=field,
                     axis_title=axis_title,
                 ),
+                width="stretch",
+            )
+
+
+def _render_classification_detail(job: DashboardJob) -> None:
+    st.subheader("Per-label quality and confusion matrices")
+    st.caption(
+        "Precision, recall, and F1 are calculated over successful responses. "
+        "Confusion-matrix rows are gold labels and columns are model predictions."
+    )
+    gold_by_case = {case.id: case.gold_label for case in job.plan.cases}
+    columns = st.columns(len(job.plan.models), gap="large")
+    for column, provider in zip(columns, job.plan.models, strict=True):
+        provider_predictions = [
+            (case_id, prediction)
+            for (case_id, _repetition, prediction_provider), prediction in (
+                job.provider_predictions.items()
+            )
+            if prediction_provider == provider
+        ]
+        if not provider_predictions:
+            provider_predictions = [
+                (result.case_id, result.predictions[provider])
+                for result in job.results.values()
+                if provider in result.predictions
+            ]
+        quality = classification_metrics(
+            (gold_by_case[case_id], prediction.label)
+            for case_id, prediction in provider_predictions
+        )
+        display_name, _color = PROVIDER_DISPLAY.get(
+            provider,
+            (provider.title(), "#0EA5E9"),
+        )
+        with column.container(border=True):
+            st.markdown(f"#### {display_name}")
+            st.caption(
+                f"Macro F1: {quality.macro_f1:.3f} · "
+                f"{quality.sample_count} successful predictions"
+                if quality.macro_f1 is not None
+                else "No successful predictions"
+            )
+            st.dataframe(
+                [
+                    {
+                        "Label": label.value,
+                        "Precision": f"{quality.per_label[label].precision:.1%}",
+                        "Recall": f"{quality.per_label[label].recall:.1%}",
+                        "F1": f"{quality.per_label[label].f1:.1%}",
+                        "Support": quality.per_label[label].support,
+                    }
+                    for label in LABELS
+                ],
+                hide_index=True,
+                width="stretch",
+            )
+            st.markdown("**Confusion matrix**")
+            st.dataframe(
+                [
+                    {
+                        "Actual": expected.value,
+                        **{
+                            predicted.value: quality.confusion_matrix[expected][
+                                predicted
+                            ]
+                            for predicted in LABELS
+                        },
+                    }
+                    for expected in LABELS
+                ],
+                hide_index=True,
                 width="stretch",
             )
 
@@ -682,6 +784,7 @@ def _render_live_monitor() -> None:
     _render_model_comparison(job.plan, job)
     if job.done_event.is_set() and job.execution is not None:
         _render_comparison_charts(job)
+        _render_classification_detail(job)
     st.divider()
     if job.error:
         st.error(job.error)
@@ -752,7 +855,7 @@ def _render_live_monitor() -> None:
         if job.execution.report_path.exists():
             download_columns[1].download_button(
                 "Download Markdown report",
-                data=job.execution.report_path.read_bytes(),
+                data=_downloadable_report(job),
                 file_name=job.execution.report_path.name,
                 mime="text/markdown",
             )

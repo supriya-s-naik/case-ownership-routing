@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 from statistics import mean
 
+from jev_experiment.evaluation.metrics import LABELS, classification_metrics
 from jev_experiment.models import CaseResult, Prediction
 
 PROVIDERS = ("jev", "haiku", "sonnet")
@@ -19,6 +20,14 @@ def _mean(values: Iterable[float]) -> float | None:
 
 def _predictions_for(results: list[CaseResult], provider: str) -> list[Prediction]:
     return [result.predictions[provider] for result in results if provider in result.predictions]
+
+
+def _quality_for(results: list[CaseResult], provider: str):
+    return classification_metrics(
+        (result.expected_label, result.predictions[provider].label)
+        for result in results
+        if provider in result.predictions
+    )
 
 
 def reported_cost(prediction: Prediction) -> float | None:
@@ -55,19 +64,15 @@ def render_smoke_report(results: list[CaseResult]) -> str:
         "",
         "## Provider summary",
         "",
-        "| Provider | Successes | Failures | Accuracy* | Mean latency | Mean confidence | Input tokens | Output tokens | Reported cost |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Provider | Successes | Failures | Accuracy* | Macro F1* | Mean latency | Mean confidence | Input tokens | Output tokens | Reported cost |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for provider in PROVIDERS:
         predictions = _predictions_for(results, provider)
+        quality = _quality_for(results, provider)
         successes = len(predictions)
         failures = len(results) - successes
-        correct = sum(
-            result.predictions[provider].label == result.expected_label
-            for result in results
-            if provider in result.predictions
-        )
-        accuracy = (correct / successes * 100) if successes else None
+        accuracy = quality.accuracy * 100 if quality.accuracy is not None else None
         latency = _mean(prediction.latency_ms for prediction in predictions)
         confidence = _mean(
             prediction.confidence
@@ -84,7 +89,8 @@ def render_smoke_report(results: list[CaseResult]) -> str:
         cost_text = f"${sum(reported_costs):.6f}" if len(reported_costs) == successes else "n/a"
         lines.append(
             f"| {provider} | {successes} | {failures} | "
-            f"{_format_number(accuracy)}% | {_format_number(latency)} ms | "
+            f"{_format_number(accuracy)}% | {_format_number(quality.macro_f1, 3)} | "
+            f"{_format_number(latency)} ms | "
             f"{_format_number(confidence, 3)} | {input_tokens} | {output_tokens} | {cost_text} |"
         )
 
@@ -118,7 +124,48 @@ def render_smoke_report(results: list[CaseResult]) -> str:
     lines.extend(
         [
             "",
-            "*Accuracy is calculated over successful responses only; failures are shown separately.",
+            "*Accuracy and Macro F1 are calculated over successful responses only; failures are shown separately.",
+            "",
+            "## Per-label quality",
+            "",
+            "Precision, recall, and F1 use a 0-to-1 scale. Support is the number of gold-label cases.",
+            "",
+            "| Provider | Label | Precision | Recall | F1 | Support |",
+            "|---|---|---:|---:|---:|---:|",
+        ]
+    )
+    for provider in PROVIDERS:
+        quality = _quality_for(results, provider)
+        for label in LABELS:
+            metrics = quality.per_label[label]
+            lines.append(
+                f"| {provider} | {label.value} | {metrics.precision:.3f} | "
+                f"{metrics.recall:.3f} | {metrics.f1:.3f} | {metrics.support} |"
+            )
+
+    lines.extend(["", "## Confusion matrices", ""])
+    for provider in PROVIDERS:
+        quality = _quality_for(results, provider)
+        lines.extend(
+            [
+                f"### {provider}",
+                "",
+                "Rows are gold labels; columns are model predictions.",
+                "",
+                "| Actual \\ Predicted | MINE | NOT_MINE | UNSURE |",
+                "|---|---:|---:|---:|",
+            ]
+        )
+        for expected in LABELS:
+            counts = quality.confusion_matrix[expected]
+            lines.append(
+                f"| {expected.value} | {counts[LABELS[0]]} | "
+                f"{counts[LABELS[1]]} | {counts[LABELS[2]]} |"
+            )
+        lines.append("")
+
+    lines.extend(
+        [
             "",
             "## Run summary",
             "",

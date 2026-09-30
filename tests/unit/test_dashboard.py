@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from jev_experiment.benchmark import BenchmarkPlan, THROUGHPUT_MODE
-from jev_experiment.dashboard import _load_saved_job
+from jev_experiment.dashboard import _downloadable_report, _load_saved_job
 from jev_experiment.models import (
     CaseEvaluation,
     CaseRecord,
@@ -81,3 +81,7 @@ def test_load_saved_job_restores_provider_progress_and_cost(tmp_path: Path) -> N
     assert job.actual_cost_usd == pytest.approx(0.003)
     assert job.execution is not None
     assert job.execution.stopped_reason is None
+    refreshed_report = _downloadable_report(job)
+    assert "# Case Ownership Routing Report" in refreshed_report
+    assert "## Per-label quality" in refreshed_report
+    assert "## Confusion matrices" in refreshed_report

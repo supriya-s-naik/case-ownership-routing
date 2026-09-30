@@ -79,16 +79,19 @@ uv run jev-experiment ui
 
 The dashboard previews the approved dataset and guarded cost estimate for free. A live
 run starts only after you enter a sufficient cost limit, acknowledge billing, and press
-the start button. Its model comparison cards show accuracy, mean latency, provider cost,
-and per-provider completion progress. Completed runs also include separate zero-based bar
-charts for accuracy, latency, and cost. The execution-mode radio offers two choices:
+the start button. Its model comparison cards show accuracy, Macro F1, mean latency,
+provider cost, and per-provider completion progress. Completed runs also include
+separate zero-based bar charts for accuracy, Macro F1, latency, and cost, plus per-label
+precision/recall/F1 tables and confusion matrices. The execution-mode radio offers two
+choices:
 **Synchronized** waits for all three providers before starting the next case, while
 **Throughput** gives each provider an independent sequential queue so a faster model can
 advance immediately. It also shows side-by-side decisions,
 confidence, probabilities, disagreements, and low-confidence flags inside a collapsed
 diagnostics section. Budget controls are collapsed separately so the primary completed
-view stays focused on model accuracy, latency, and cost. Completed cases are persisted by
-the same benchmark engine used by the terminal command.
+view stays focused on model quality, latency, and cost. Completed cases are persisted by
+the same benchmark engine used by the terminal command. Downloaded Markdown reports
+include the same primary classification metrics.
 
 Each provider request is stateless and contains only the ownership policy and the current
 case transcript. Previous runs and predictions are not sent to the models. Because the

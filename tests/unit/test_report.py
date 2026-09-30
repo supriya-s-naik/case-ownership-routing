@@ -30,7 +30,14 @@ def test_smoke_report_summarizes_predictions() -> None:
 
     report = render_smoke_report([result])
 
-    assert "| jev | 1 | 0 | 100.0% | 125.0 ms | 0.900 | 20 | 3 | n/a |" in report
+    assert (
+        "| jev | 1 | 0 | 100.0% | 0.333 | 125.0 ms | 0.900 | 20 | 3 | n/a |"
+        in report
+    )
+    assert "## Per-label quality" in report
+    assert "| jev | MINE | 1.000 | 1.000 | 1.000 | 1 |" in report
+    assert "## Confusion matrices" in report
+    assert "| MINE | 1 | 0 | 0 |" in report
     assert "| DEV-0001 | MINE | MINE | FAILURE | FAILURE | no |" in report
     assert "Cost coverage: 0 of 1 successful calls; missing for: jev." in report
 
